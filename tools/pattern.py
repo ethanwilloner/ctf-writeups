@@ -58,5 +58,17 @@ def pattern_offset(eip_pattern, length):
     except:
         return "Invalid pattern provided"
 
+# Compatability function for when the caller is python2 
+def pattern_offset_compat(eip_pattern, length):
+    try:
+        pattern = pattern_create(length)
+        offset = pattern.find(binascii.unhexlify(eip_pattern.strip('0x')).decode('ascii')[::-1])
+        if offset < 0:
+            return "Not Found"
+        else:
+            return offset
+    except:
+        return "Invalid pattern provided"
+
 if __name__ == '__main__':
     main()
