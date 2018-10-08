@@ -12,30 +12,43 @@ _start:
 
 CONTINUE:
     pop rcx
-
     mov rdi, rcx ; pointer to string
-    mov rsi, 0 ; O_RDONLY, found in /usr/include/bits/fcntl-linux.h
-    mov rax, 2 ; set open syscall
+    xor rsi, rsi ; set rsi to 0 for O_RDONLY
+    mov ecx, 0x02123456 ; Number will no null bytes
+    shr ecx, 24 ; shift by 24 bits to make it equal 2
+    mov rax, rcx ; set open syscall
 		; arch/x86/entry/syscalls/syscall_64.tbl
     syscall ; call open
     
     mov rdi, rax ; move fd into rdi
     mov rsi, rsp ; pointer to buffer
-    mov rdx, 32 ; max buffer size
-    mov rax, 0 ; set read syscall
+    mov ecx, 0x20123456
+    shr ecx, 24
+    mov rdx, rcx ; max buffer size
+    xor rax, rax ; set rax to 0
     syscall ; call read
    
-    mov rdi, 1 ; set fd 1 for stdout
+    mov ecx, 0x01234567
+    shr ecx, 24
+    mov rdi, rcx
     mov rsi, rsp ; pointer to buffer
-    mov rdx, 32 ; set len to 32
-    mov rax, 1 ; set write syscall
+    mov ecx, 0x20123456
+    shr ecx, 24
+    mov rdx, rcx ; max buffer size
+    mov ecx, 0x01234567
+    shr ecx, 24
+    mov rax, rcx ; set fd 1 for stdout
     syscall ; call write
 
-    add rsp, 32 ; decrement stack pointer
+    mov ecx, 0x20123456
+    shr ecx, 24
+    add rsp, rcx ; decrement stack pointer
 
     ; exit
-    mov rax, 60 ; exit syscall 60
-    xor rdi, 0 ; exit code 0
+    mov ecx, 0x3c123456
+    shr ecx, 24
+    mov rax, rcx
+    xor rdi, rdi ; exit code 0
     syscall ; call exit
 
 file_name:
