@@ -1,0 +1,13 @@
+# To fix TIME_WAIT from crashed daemon
+/etc/init.d/network restart
+
+gdbserver --attach localhost:5000 `pidof miniweb`
+
+gdb -ex="target remote 192.168.192.128:5000" -ex="set follow-fork-mode child" -ex="continue"
+
+gdb -ex="target remote 192.168.1.79:5000" -ex="set follow-fork-mode child" -ex="break urldecode" -ex="break serveconnection" -ex="break does_file_exist" -ex="break *0x011cd8" -ex="break *0x013524" -ex="break *0x013540" -ex="break *0x013484"
+
+gdb -ex="target remote 192.168.1.79:5000" -ex="set follow-fork-mode child"
+-ex="break serveconnection" -ex="break system" -ex="break Log"
+
+gdb --pid `pidof miniweb` -ex="set follow-fork-mode child" -ex="break *0x13540" -ex="break system" 
