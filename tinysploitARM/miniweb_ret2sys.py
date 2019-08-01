@@ -2,7 +2,6 @@
 
 from pwn import *
 import socket
-from ctypes import c_uint
 
 context.arch='arm'
 context.bits=32
