@@ -1,4 +1,4 @@
-###Challenge 1
+### Challenge 1
 Browse to [brokenazure.cloud](brokenazure.cloud) in burp, and you'll notice there's several html files that get loaded. If you click on the header.html request, you'll see that the banner image is hosted on an azure storage account.
 ![](images/1.png)
 
@@ -8,7 +8,7 @@ As this is the first challenge, there's a good chance this storage account is un
 The name of the .PEM file is the flag: SECURA{C3RT1F1C3T3}
 The storage account seems to have an employee VPN configuration as well, so its likely the config and .PEM can be used for the next challenge.
 
-###Challenge 2
+### Challenge 2
 https://www.brokenazure.cloud/am1b3176321b173g183721ba73/index.html
 
 If we crack open the .PEM file in a text editor, we can see that it contains a tenant and app id:
@@ -77,7 +77,7 @@ So now we know the account has some level of access. However, not being an azure
 
 Flag: SECURA{D4F4ULT_P4SSW0RD}.
 
-###Challenge 3
+### Challenge 3
 https://www.brokenazure.cloud/b87312j321h321312hdsajhdjd/index.html
 
 We have a set of creds from the last challenge, so lets try to login to azure with them:
@@ -89,7 +89,7 @@ Spent some time trying to connect over RDP to VM, and connect to the VPN, neithe
 
 Flag: SECURA{C0NN3CT10N_STR1NG}
 
-###Challenge 4
+### Challenge 4
 https://www.brokenazure.cloud/c839213j213j1h421321hj3219/index.html
 
 
@@ -107,7 +107,7 @@ There is only one db table, I just ran a default query that shows top 1000 resul
 
 Flag: SECURA{VPN_CR3D3NT14LS}
 
-###Challenge 5
+### Challenge 5
 https://www.brokenazure.cloud/drm0s7q6nhhvxk8e57yqvhd814/index.html
 
 Use the previous flag as the vpn password for the ovpn file from the file share in challenges 1
