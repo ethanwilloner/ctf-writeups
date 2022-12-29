@@ -5,7 +5,7 @@ Browse to [brokenazure.cloud](brokenazure.cloud) in burp, and you'll notice ther
 As this is the first challenge, there's a good chance this storage account is unprotected. Lets connect to https://supercompanystorage.blob.core.windows.net/storagecontainer with Azure Storage Explorer:
 ![](images/2.png)
 
-The name of the .PEM file seems to be the flag: SECURA{C3RT1F1C3T3}
+The name of the .PEM file is the flag: SECURA{C3RT1F1C3T3}
 The storage account seems to have an employee VPN configuration as well, so its likely the config and .PEM can be used for the next challenge.
 
 ###Challenge 2
@@ -75,14 +75,54 @@ So now we know the account has some level of access. However, not being an azure
   ...
 ```
 
-So our flag is SECURA{D4F4ULT_P4SSW0RD}.
+Flag: SECURA{D4F4ULT_P4SSW0RD}.
 
 ###Challenge 3
 https://www.brokenazure.cloud/b87312j321h321312hdsajhdjd/index.html
 
+We have a set of creds from the last challenge, so lets try to login to azure with them:
+![](images/3.png)
+Success!
+
+Spent some time trying to connect over RDP to VM, and connect to the VPN, neither of which worked. After some digging around I discovered app functions, and then found that you can upload code in these functions. Inspecting the code for the GetDbConnection function app found us something interesting:
+![](images/4.png)
+
+Flag: SECURA{C0NN3CT10N_STR1NG}
+
 ###Challenge 4
+https://www.brokenazure.cloud/c839213j213j1h421321hj3219/index.html
+
+
+The code in the previous challenge gives us a db server on port 1433. This is a SQL server port, so download azure data studio so that we can connect to it with the credentials in the string:
+https://learn.microsoft.com/en-us/sql/azure-data-studio/download-azure-data-studio?view=sql-server-2017
+
+Server: securavulnerableserver.database.windows.net
+Username: DevOps
+Password: SECURA{C0NN3CT10N_STR1NG}
+![](images/6.png)
+
+There is only one db table, I just ran a default query that shows top 1000 results
+![](images/5.png)
+
+
+Flag: SECURA{VPN_CR3D3NT14LS}
+
 ###Challenge 5
-###Challenge 6
+https://www.brokenazure.cloud/drm0s7q6nhhvxk8e57yqvhd814/index.html
+
+Use the previous flag as the vpn password for the ovpn file from the file share in challenges 1
+![](images/7.png)
+
+Earlier I noticed that there was a VM that only had an internal IP. There was only one VPN configured for the whole network so presumably we can try to connect to that VM. Find the IP/other info first:
+![](images/8.png)
+
+Port scan the host to see what's open:
+![](images/9.png)
+
+There's a web server on port 80. Lets connect to it in the browser:
+![](images/10.png)
+
+Flag: SECURA{1NT3RN4L_HTML_W3BP4G3}
 
 **Links:**
 https://securitycafe.ro/2022/04/29/pentesting-azure-recon-techniques/
